@@ -1,6 +1,14 @@
 # 🦆 可愛插畫鴨鴨檔案刪除助手 - Desktop Duck Deleter
 
-這是一個超級治癒又充滿趣味的 Windows 桌面互動應用！當你想刪除電腦上的檔案時，不再是冰冷的系統提示，而是可以召喚出一隻圓滾滾、呆萌的小黃鴨，搖搖擺擺地走到檔案面前，張開大圓嘴把檔案大口吞下、咀嚼，並化作漫天飛舞的可愛羽毛與星星，最後戴上帥氣墨鏡開心飛走！
+<p align="center">
+  <a href="https://github.com/apple595201908/DuckDeleter/raw/main/DuckDeleter_Setup_v1.0.0.exe">
+    <img src="https://img.shields.io/badge/⬇️_一鍵下載-Windows_完整安裝包_(.exe)-ff9900?style=for-the-badge&logo=windows&logoColor=white" alt="下載安裝包">
+  </a>
+</p>
+
+> 💡 **快速下載連結**：[👉 點此直接下載 DuckDeleter_Setup_v1.0.0.exe](https://github.com/apple595201908/DuckDeleter/raw/main/DuckDeleter_Setup_v1.0.0.exe)
+
+---
 
 ## ✨ 核心亮點
 
