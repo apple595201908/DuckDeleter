@@ -3,9 +3,9 @@ import os
 import winreg
 import shutil
 import urllib.parse
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QGraphicsDropShadowEffect, QFileDialog, QMessageBox
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QPoint, QEasingCurve, pyqtSignal, QUrl, pyqtProperty
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QTransform, QImage, QPainterPath, QCursor, QPen, QFont, QBrush
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QTransform, QImage, QPainterPath, QCursor, QPen, QFont, QBrush, QIcon
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 def get_resource_path(relative_path):
@@ -318,7 +318,7 @@ class BubbleWidget(QWidget):
                 color: #4a3420; 
                 padding: 18px 34px; 
                 font-family: 'Segoe UI', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif; 
-                font-size: 21px; 
+                font-size: 20px; 
                 font-weight: 800;
             }
         """
@@ -332,6 +332,10 @@ class BubbleWidget(QWidget):
         shadow.setOffset(0, 10)
         shadow.setColor(QColor(255, 180, 50, 70))
         self.setGraphicsEffect(shadow)
+
+    def set_text(self, text):
+        self.lbl_text.setText(text)
+        self.adjustSize()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -355,6 +359,8 @@ class BubbleWidget(QWidget):
 
 class ChoicesWidget(QWidget):
     choiceMade = pyqtSignal()
+    choiceCanceled = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool | Qt.WindowType.WindowStaysOnTopHint)
@@ -363,9 +369,9 @@ class ChoicesWidget(QWidget):
         layout.setSpacing(16)
 
         self.btn1 = QPushButton("是的！大口吃掉 🐥😋")
-        self.btn2 = QPushButton("沒錯～快吃掉它 💖")
+        self.btn2 = QPushButton("放它一馬 💨")
 
-        btn_style = """
+        btn1_style = """
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #fff5d6);
                 color: #52381e; 
@@ -387,8 +393,28 @@ class ChoicesWidget(QWidget):
                 border: 2.5px solid #d35400;
             }
         """
-        self.btn1.setStyleSheet(btn_style)
-        self.btn2.setStyleSheet(btn_style)
+        btn2_style = """
+            QPushButton {
+                background: #ffffff;
+                color: #8c7a6b; 
+                border: 2px solid #ddd2c4; 
+                border-radius: 22px; 
+                padding: 12px 24px; 
+                font-family: 'Segoe UI', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif; 
+                font-size: 16px; 
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #f5f0eb;
+                color: #52381e;
+                border: 2px solid #bbaea0;
+            }
+            QPushButton:pressed {
+                background: #e5ded6;
+            }
+        """
+        self.btn1.setStyleSheet(btn1_style)
+        self.btn2.setStyleSheet(btn2_style)
 
         for btn in [self.btn1, self.btn2]:
             shadow = QGraphicsDropShadowEffect()
@@ -397,16 +423,20 @@ class ChoicesWidget(QWidget):
             shadow.setColor(QColor(255, 160, 30, 60))
             btn.setGraphicsEffect(shadow)
 
-        self.btn1.clicked.connect(self.on_click)
-        self.btn2.clicked.connect(self.on_click)
+        self.btn1.clicked.connect(self.on_eat_click)
+        self.btn2.clicked.connect(self.on_cancel_click)
 
         layout.addWidget(self.btn1)
         layout.addWidget(self.btn2)
         self.setLayout(layout)
 
-    def on_click(self):
+    def on_eat_click(self):
         self.hide()
         self.choiceMade.emit()
+
+    def on_cancel_click(self):
+        self.hide()
+        self.choiceCanceled.emit()
 
 
 class DuckDeleter(QWidget):
@@ -433,7 +463,20 @@ class DuckDeleter(QWidget):
         self.choices = ChoicesWidget()
 
         self.init_audio()
-        self.init_targeting_ui()
+
+        if self.target_file:
+            # DIRECT RIGHT-CLICK MODE: No crosshair, no selection background!
+            self.duck_sequence_started = True
+            cursor_pos = QCursor.pos()
+            # Ensure target_pos is within screen bounds
+            target_x = max(100, min(screen.width() - 100, cursor_pos.x()))
+            target_y = max(100, min(screen.height() - 100, cursor_pos.y()))
+            self.target_pos = QPoint(target_x, target_y)
+            # Directly launch duck sequence
+            QTimer.singleShot(60, self.init_duck_sequence)
+        else:
+            # Manual Aiming Mode
+            self.init_targeting_ui()
 
     @pyqtProperty(float)
     def bg_opacity(self):
@@ -631,14 +674,22 @@ class DuckDeleter(QWidget):
         except TypeError:
             pass
 
+        if self.target_file:
+            fname = os.path.basename(self.target_file)
+            if len(fname) > 22:
+                fname = fname[:20] + "..."
+            self.bubble.set_text(f"呱？要把「{fname}」大口吃掉嗎？😋✨")
+        else:
+            self.bubble.set_text("呱？要把這個檔案大口吃掉嗎？😋✨")
+
         global_pos = self.mapToGlobal(self.animator.pos())
 
-        bubble_x = global_pos.x() + (self.animator.width() // 2) - 130
-        bubble_y = global_pos.y() - 85
+        bubble_x = global_pos.x() + (self.animator.width() // 2) - (self.bubble.width() // 2)
+        bubble_y = global_pos.y() - 95
         self.bubble.move(bubble_x, bubble_y)
         self.bubble.show()
 
-        choices_x = global_pos.x() + (self.animator.width() // 2) - 165
+        choices_x = global_pos.x() + (self.animator.width() // 2) - 170
         choices_y = global_pos.y() + self.animator.height() - 10
         self.choices.move(choices_x, choices_y)
 
@@ -646,9 +697,19 @@ class DuckDeleter(QWidget):
             self.choices.choiceMade.disconnect()
         except TypeError:
             pass
+        try:
+            self.choices.choiceCanceled.disconnect()
+        except TypeError:
+            pass
 
         self.choices.choiceMade.connect(self.start_phase3_eat)
+        self.choices.choiceCanceled.connect(self.on_cancel_requested)
         self.choices.show()
+
+    def on_cancel_requested(self):
+        self.bubble.hide()
+        self.choices.hide()
+        self.start_phase5_fly()
 
     def start_phase3_eat(self):
         self.bubble.hide()
@@ -781,6 +842,135 @@ class DuckDeleter(QWidget):
         QApplication.quit()
         sys.exit(0)
 
+
+class LauncherDialog(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("🦆 可愛插畫鴨鴨檔案刪除助手")
+        self.setFixedSize(520, 430)
+        icon_path = get_asset_file("", "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #fffdf5;
+                font-family: 'Segoe UI', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif;
+            }
+        """)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(36, 32, 36, 32)
+        layout.setSpacing(16)
+
+        title_lbl = QLabel("🦆 可愛鴨鴨檔案刪除助手")
+        title_lbl.setStyleSheet("font-size: 25px; font-weight: 900; color: #52381e;")
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_lbl)
+
+        status_lbl = QLabel("✨ Windows 右鍵選單已啟用 ✨")
+        status_lbl.setStyleSheet("""
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1.5px solid #a5d6a7;
+            border-radius: 14px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 700;
+        """)
+        status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(status_lbl)
+
+        desc_lbl = QLabel(
+            "您現在可以在電腦上的任何檔案或資料夾「按滑鼠右鍵」，\n"
+            "選擇「召喚可愛鴨鴨吃掉 🦆」，小黃鴨就會跑出來吃掉它！\n\n"
+            "（吃掉的檔案會安全移至資源回收筒，隨時可還原）"
+        )
+        desc_lbl.setStyleSheet("font-size: 14px; color: #735940; line-height: 140%;")
+        desc_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        desc_lbl.setWordWrap(True)
+        layout.addWidget(desc_lbl)
+
+        layout.addSpacing(10)
+
+        btn_pick = QPushButton("📁 選擇檔案讓鴨鴨吃掉 (測試)")
+        btn_pick.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffd966, stop:1 #ffa91a);
+                color: #ffffff;
+                border: 2px solid #ea8b00;
+                border-radius: 20px;
+                padding: 12px;
+                font-size: 16px;
+                font-weight: 800;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffe185, stop:1 #ffb833);
+            }
+            QPushButton:pressed {
+                background: #e67e22;
+            }
+        """)
+        btn_pick.clicked.connect(self.on_pick_file)
+        layout.addWidget(btn_pick)
+
+        btn_crosshair = QPushButton("🎯 進入手動準心瞄準模式")
+        btn_crosshair.setStyleSheet("""
+            QPushButton {
+                background: #ffffff;
+                color: #52381e;
+                border: 1.5px solid #dcd2c4;
+                border-radius: 18px;
+                padding: 10px;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #fdf6ec;
+                border: 1.5px solid #ffbb44;
+            }
+        """)
+        btn_crosshair.clicked.connect(self.on_open_crosshair)
+        layout.addWidget(btn_crosshair)
+
+        btn_repair = QPushButton("🔄 修復 / 重新註冊右鍵選單")
+        btn_repair.setStyleSheet("""
+            QPushButton {
+                background: #ffffff;
+                color: #52381e;
+                border: 1.5px solid #dcd2c4;
+                border-radius: 18px;
+                padding: 10px;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #fdf6ec;
+                border: 1.5px solid #ffbb44;
+            }
+        """)
+        btn_repair.clicked.connect(self.on_repair_registry)
+        layout.addWidget(btn_repair)
+
+        self.setLayout(layout)
+
+    def on_pick_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "請選擇要讓可愛鴨鴨吃掉的檔案")
+        if file_path:
+            self.hide()
+            self.duck_app = DuckDeleter(file_path)
+            self.duck_app.show()
+
+    def on_open_crosshair(self):
+        self.hide()
+        self.duck_app = DuckDeleter()
+        self.duck_app.show()
+
+    def on_repair_registry(self):
+        register_context_menu()
+        QMessageBox.information(self, "完成", "✅ 已成功修復並註冊右鍵選單「召喚可愛鴨鴨吃掉 🦆」！")
+
+
 # Backward compatibility alias
 MonsterDeleter = DuckDeleter
 
@@ -792,6 +982,11 @@ if __name__ == '__main__':
         target = sys.argv[1]
 
     app = QApplication(sys.argv)
-    ex = DuckDeleter(target)
-    ex.show()
+    if target:
+        ex = DuckDeleter(target)
+        ex.show()
+    else:
+        launcher = LauncherDialog()
+        launcher.show()
+
     sys.exit(app.exec())

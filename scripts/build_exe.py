@@ -16,6 +16,7 @@ def build():
         "--onefile",
         "--windowed",
         "--name", "DuckDeleter",
+        "--icon", os.path.join(ROOT_DIR, "assets", "app_icon.ico"),
         "--add-data", "assets;assets",
         "--hidden-import", "send2trash",
         "--hidden-import", "comtypes",
