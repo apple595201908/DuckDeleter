@@ -664,6 +664,24 @@ class DuckDeleter(QWidget):
 
         eat_sprite = get_asset_file("", "duck_eat_spritesheet.png", "duck_kick_spritesheet.png", "踹文件动效_spritesheet.png")
         self.animator.load_spritesheet(eat_sprite, target_height=DUCK_SIZE)
+
+        # Orient duck's mouth directly towards the target file:
+        # Since raw eat sprite faces LEFT, facing right (target is on right) requires flip_horizontal=True
+        if self.target_pos:
+            duck_center_x = self.animator.x() + (self.animator.width() // 2)
+            is_target_on_right = self.target_pos.x() >= duck_center_x
+            self.animator.set_flip(is_target_on_right)
+
+            if is_target_on_right:
+                # Duck is on left, mouth opens to the right towards file
+                eat_x = self.target_pos.x() - self.animator.width() + 60
+            else:
+                # Duck is on right, mouth opens to the left towards file
+                eat_x = self.target_pos.x() - 60
+
+            eat_y = self.target_pos.y() - (self.animator.height() // 2) + 20
+            self.animator.move(eat_x, eat_y)
+
         self.animator.animationFinished.connect(self.on_eat_finished)
         self.animator.frameChanged.connect(self.on_eat_frame)
         self.animator.play(fps=9, loop=False)
@@ -722,6 +740,7 @@ class DuckDeleter(QWidget):
     on_kick_finished = on_eat_finished
 
     def start_phase4_victory(self):
+        self.animator.set_flip(False)
         victory_sprite = get_asset_file("", "duck_victory_spritesheet.png", "雷欧登场_spritesheet.png")
         self.animator.load_spritesheet(victory_sprite, target_height=DUCK_SIZE)
         self.animator.animationFinished.connect(self.start_phase5_fly)
@@ -733,6 +752,7 @@ class DuckDeleter(QWidget):
         except TypeError:
             pass
 
+        self.animator.set_flip(False)
         fly_sprite = get_asset_file("", "duck_fly_spritesheet.png", "出场飞行动效_spritesheet.png")
         self.animator.load_spritesheet(fly_sprite, target_height=DUCK_SIZE)
         self.animator.play(fps=9, loop=True)
