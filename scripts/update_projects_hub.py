@@ -38,6 +38,9 @@ duck_card = """
           <a href="./16_可愛插畫鴨鴨檔案刪除助手_Desktop_Duck_Deleter/" class="btn-secondary">
             <span>📁</span> 專案目錄
           </a>
+          <a href="https://github.com/apple595201908/DuckDeleter" target="_blank" class="btn-secondary" style="border-color: #3b82f6; color: #93c5fd;">
+            <span>🐙</span> GitHub 倉庫
+          </a>
         </div>
       </div>
 """
@@ -56,6 +59,7 @@ duck_readme_sec = """
 
 ### 📁 16_可愛插畫鴨鴨檔案刪除助手 (Desktop Duck Deleter)
 * **路徑**：`專案分類整理_Projects/16_可愛插畫鴨鴨檔案刪除助手_Desktop_Duck_Deleter/`
+* **GitHub 倉庫**：[https://github.com/apple595201908/DuckDeleter](https://github.com/apple595201908/DuckDeleter)
 * **特色**：
   * **超治癒 Windows 桌面互動應用**：告別單調刪除提示，召喚呆萌小黃鴨搖晃走到檔案前，一腳踢爆檔案並化為漫天可愛羽毛與星星。
   * **6 大全彩逐幀透明動畫 (5x3)**：
