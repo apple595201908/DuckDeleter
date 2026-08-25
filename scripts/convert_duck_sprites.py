@@ -96,8 +96,15 @@ def main():
     if point_files:
         process_spritesheet(point_files[-1], os.path.join(ASSETS_DIR, "指着文件_spritesheet_transparent.png"), target_size=(2000, 1600))
         
-    # 4. Kick
-    if kick_files:
+    # 4. Kick / Eat
+    eat_files = sorted(glob.glob(os.path.join(BRAIN_DIR, "duck_eat_sheet_*.jpg")))
+    if eat_files:
+        process_spritesheet(eat_files[-1], os.path.join(ASSETS_DIR, "duck_eat_spritesheet.png"), target_size=(2000, 1600))
+        # Keep alias for kick phase as well
+        process_spritesheet(eat_files[-1], os.path.join(ASSETS_DIR, "duck_kick_spritesheet.png"), target_size=(2000, 1600))
+        process_spritesheet(eat_files[-1], os.path.join(ASSETS_DIR, "踹文件动效_spritesheet_transparent.png"), target_size=(2000, 1600))
+    elif kick_files:
+        process_spritesheet(kick_files[-1], os.path.join(ASSETS_DIR, "duck_kick_spritesheet.png"), is_kick=True, target_size=(2000, 1600))
         process_spritesheet(kick_files[-1], os.path.join(ASSETS_DIR, "踹文件动效_spritesheet_transparent.png"), is_kick=True, target_size=(2000, 1600))
         
     # 5. Explosion

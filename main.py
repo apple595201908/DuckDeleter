@@ -362,8 +362,8 @@ class ChoicesWidget(QWidget):
         layout = QHBoxLayout()
         layout.setSpacing(16)
 
-        self.btn1 = QPushButton("是的！吃掉它 🐥")
-        self.btn2 = QPushButton("沒錯～就是這個 💖")
+        self.btn1 = QPushButton("是的！大口吃掉 🐥😋")
+        self.btn2 = QPushButton("沒錯～快吃掉它 💖")
 
         btn_style = """
             QPushButton {
@@ -429,7 +429,7 @@ class DuckDeleter(QWidget):
         self.explosion_animator = SpriteAnimator(self)
         self.explosion_animator.hide()
 
-        self.bubble = BubbleWidget("呱？是要吃掉這個檔案嗎？✨")
+        self.bubble = BubbleWidget("呱？要把這個檔案大口吃掉嗎？😋✨")
         self.choices = ChoicesWidget()
 
         self.init_audio()
@@ -461,6 +461,14 @@ class DuckDeleter(QWidget):
         if os.path.exists(sfx_path):
             self.sfx_player.setSource(QUrl.fromLocalFile(sfx_path))
             self.sfx_audio.setVolume(0.85)
+
+        self.eat_player = QMediaPlayer()
+        self.eat_audio = QAudioOutput()
+        self.eat_player.setAudioOutput(self.eat_audio)
+        eat_path = get_asset_file("音频", "duck_eat.mp3")
+        if os.path.exists(eat_path):
+            self.eat_player.setSource(QUrl.fromLocalFile(eat_path))
+            self.eat_audio.setVolume(0.85)
 
         self.exp_player = QMediaPlayer()
         self.exp_audio = QAudioOutput()
@@ -639,10 +647,10 @@ class DuckDeleter(QWidget):
         except TypeError:
             pass
 
-        self.choices.choiceMade.connect(self.start_phase3_kick)
+        self.choices.choiceMade.connect(self.start_phase3_eat)
         self.choices.show()
 
-    def start_phase3_kick(self):
+    def start_phase3_eat(self):
         self.bubble.hide()
 
         try:
@@ -651,15 +659,22 @@ class DuckDeleter(QWidget):
         except TypeError:
             pass
 
-        kick_sprite = get_asset_file("", "duck_kick_spritesheet.png", "踹文件动效_spritesheet.png")
-        self.animator.load_spritesheet(kick_sprite, target_height=DUCK_SIZE)
-        self.animator.animationFinished.connect(self.on_kick_finished)
-        self.animator.frameChanged.connect(self.on_kick_frame)
-        self.animator.play(fps=10, loop=False)
+        if hasattr(self, 'eat_player'):
+            self.eat_player.play()
 
-    def on_kick_frame(self, frame_idx):
+        eat_sprite = get_asset_file("", "duck_eat_spritesheet.png", "duck_kick_spritesheet.png", "踹文件动效_spritesheet.png")
+        self.animator.load_spritesheet(eat_sprite, target_height=DUCK_SIZE)
+        self.animator.animationFinished.connect(self.on_eat_finished)
+        self.animator.frameChanged.connect(self.on_eat_frame)
+        self.animator.play(fps=9, loop=False)
+
+    start_phase3_kick = start_phase3_eat
+
+    def on_eat_frame(self, frame_idx):
         if frame_idx == 5:
             self.trigger_explosion()
+
+    on_kick_frame = on_eat_frame
 
     def trigger_explosion(self):
         if hasattr(self, 'exp_player'):
@@ -695,7 +710,7 @@ class DuckDeleter(QWidget):
         else:
             print("[Action] No target file identified to delete.")
 
-    def on_kick_finished(self):
+    def on_eat_finished(self):
         try:
             self.animator.animationFinished.disconnect()
             self.animator.frameChanged.disconnect()
@@ -703,6 +718,8 @@ class DuckDeleter(QWidget):
             pass
 
         self.start_phase4_victory()
+
+    on_kick_finished = on_eat_finished
 
     def start_phase4_victory(self):
         victory_sprite = get_asset_file("", "duck_victory_spritesheet.png", "雷欧登场_spritesheet.png")

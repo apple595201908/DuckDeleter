@@ -86,7 +86,62 @@ def synthesize_duck_quack():
     return audio
 
 # -------------------------------------------------------------
-# 2. Cute Pop Sparkle Explosion ("啵！星星羽毛炸裂")
+# 2. Cute Duck Chomping & Eating Synthesizer ("大口吃掉/嚼嚼/咕嚕吞下")
+# -------------------------------------------------------------
+def synthesize_duck_eating():
+    duration = 2.0
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    audio = np.zeros_like(t)
+
+    # 1. Big Cartoon CHOMP! (0.05s)
+    chomp_len = 0.12
+    c_t = np.linspace(0, chomp_len, int(SAMPLE_RATE * chomp_len))
+    c_freq = 650 * np.exp(-c_t * 35) + 120
+    c_phase = 2 * np.pi * np.cumsum(c_freq) / SAMPLE_RATE
+    chomp = (np.sin(c_phase) + 0.4 * np.sin(2 * c_phase)) * np.exp(-c_t * 24) * 0.85
+    # Add teeth snap click
+    snap = np.random.uniform(-0.6, 0.6, len(c_t)) * np.exp(-c_t * 90) * 0.4
+    s1_idx = int(0.05 * SAMPLE_RATE)
+    audio[s1_idx:s1_idx + len(c_t)] += (chomp + snap)
+
+    # 2. Chewing sounds "Nom Nom Nom!" (0.32s, 0.58s, 0.82s)
+    for chew_idx, chew_time in enumerate([0.32, 0.58, 0.82]):
+        n_len = 0.14
+        n_t = np.linspace(0, n_len, int(SAMPLE_RATE * n_len))
+        f_start = 320 + chew_idx * 30
+        n_freq = f_start * np.exp(-n_t * 22) + 140
+        n_phase = 2 * np.pi * np.cumsum(n_freq) / SAMPLE_RATE
+        nom = np.sin(n_phase) * np.sin(np.pi * (n_t / n_len)) * 0.55
+        # Soft squish
+        squish = np.sin(2 * np.pi * 550 * n_t) * np.exp(-n_t * 30) * 0.25
+        idx = int(chew_time * SAMPLE_RATE)
+        audio[idx:idx + len(n_t)] += (nom + squish)
+
+    # 3. Big Happy Gulp! "咕嚕~" (1.12s)
+    g_len = 0.28
+    g_t = np.linspace(0, g_len, int(SAMPLE_RATE * g_len))
+    g_freq = 280 + 160 * np.sin(np.pi * (g_t / g_len)) - 60 * (g_t / g_len)
+    g_phase = 2 * np.pi * np.cumsum(g_freq) / SAMPLE_RATE
+    gulp = np.sin(g_phase) * (np.sin(np.pi * (g_t / g_len)) ** 1.3) * 0.75
+    # Bubble resonance
+    bubble = np.sin(2 * np.pi * 650 * g_t) * np.exp(-g_t * 16) * 0.3
+    g_idx = int(1.12 * SAMPLE_RATE)
+    audio[g_idx:g_idx + len(g_t)] += (gulp + bubble)
+
+    # 4. Joyful satisfaction chime & sparkle (1.45s)
+    for i, freq in enumerate([1046.5, 1318.5, 1567.98, 2093.0]): # C6, E6, G6, C7
+        ch_time = 1.45 + i * 0.07
+        ch_idx = int(ch_time * SAMPLE_RATE)
+        c_len = 0.4
+        c_t = np.linspace(0, c_len, int(SAMPLE_RATE * c_len))
+        chime = np.sin(2 * np.pi * freq * c_t) * np.exp(-c_t * 9) * 0.2
+        e_idx = min(ch_idx + len(chime), len(audio))
+        audio[ch_idx:e_idx] += chime[:e_idx - ch_idx]
+
+    return audio
+
+# -------------------------------------------------------------
+# 3. Cute Pop Sparkle Explosion ("啵！星星羽毛炸裂")
 # -------------------------------------------------------------
 def synthesize_pop_explosion():
     duration = 1.8
@@ -246,22 +301,28 @@ def main():
     quack_audio = synthesize_duck_quack()
     quack_wav = os.path.join(temp_dir, "quack.wav")
     save_wav(quack_wav, quack_audio)
-    quack_mp3 = os.path.join(ASSETS_DIR, "怪兽说话.mp3")
-    convert_to_mp3_and_mp4(quack_wav, quack_mp3)
-    
-    # 2. Pop Sparkle Explosion
+    convert_to_mp3_and_mp4(quack_wav, os.path.join(ASSETS_DIR, "duck_quack.mp3"))
+    convert_to_mp3_and_mp4(quack_wav, os.path.join(ASSETS_DIR, "怪兽说话.mp3"))
+
+    # 2. Duck Chomping & Eating SFX
+    eat_audio = synthesize_duck_eating()
+    eat_wav = os.path.join(temp_dir, "eat.wav")
+    save_wav(eat_wav, eat_audio)
+    convert_to_mp3_and_mp4(eat_wav, os.path.join(ASSETS_DIR, "duck_eat.mp3"))
+
+    # 3. Pop Sparkle Explosion
     pop_audio = synthesize_pop_explosion()
     pop_wav = os.path.join(temp_dir, "pop.wav")
     save_wav(pop_wav, pop_audio)
-    pop_mp4 = os.path.join(ASSETS_DIR, "爆炸.MP4")
-    convert_to_mp3_and_mp4(pop_wav, os.path.join(ASSETS_DIR, "爆炸.mp3"), pop_mp4)
-    
-    # 3. Cheerful Duck BGM
+    convert_to_mp3_and_mp4(pop_wav, os.path.join(ASSETS_DIR, "duck_pop.mp3"))
+    convert_to_mp3_and_mp4(pop_wav, os.path.join(ASSETS_DIR, "爆炸.mp3"), os.path.join(ASSETS_DIR, "爆炸.MP4"))
+
+    # 4. Cheerful Duck BGM
     bgm_audio = synthesize_duck_bgm()
     bgm_wav = os.path.join(temp_dir, "bgm.wav")
     save_wav(bgm_wav, bgm_audio)
-    bgm_mp3 = os.path.join(ASSETS_DIR, "bgm(1).mp3")
-    convert_to_mp3_and_mp4(bgm_wav, bgm_mp3)
+    convert_to_mp3_and_mp4(bgm_wav, os.path.join(ASSETS_DIR, "duck_bgm.mp3"))
+    convert_to_mp3_and_mp4(bgm_wav, os.path.join(ASSETS_DIR, "bgm(1).mp3"))
     
     # Clean temp directory
     try:
